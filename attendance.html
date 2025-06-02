@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Temporary Museum Attendance</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 300px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #007BFF;
+      color: white;
+      padding: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .total {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #007BFF;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 25px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+ad  </style>
+</head>
+<body>
+    <div>
+        <img src=""C:\Users\turfz\Desktop\ممعرض\على الدرب.png"" alt=""></div>
+  <div class="container">
+    <h1>الحضور اليومي</h1>
+    <input type="number" id="attendanceInput" placeholder="Enter number" min="0">
+    <button onclick="addAttendance()">اضافة الى المجموع</button>
+    <button onclick="subtractAttendance()" style="background:#ffc107;color:#333;margin-top:10px;">حذف من المجموع</button>
+    <div class="total">الحضور الكلي: <span id="totalCount">0</span></div>
+    <table id="attendanceTable" style="display:none;">
+      <thead>
+        <tr>
+          <th style="text-align:left;">التاريخ</th>
+          <th style="text-align:right;">الحضور</th>
+          <th style="text-align:center;"></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    // Load total from localStorage or default to 0
+    let total = parseInt(localStorage.getItem("attendanceTotal")) || 0;
+    document.getElementById("totalCount").textContent = total;
+
+    // Load daily attendance from localStorage or default to empty object
+    let dailyAttendance = JSON.parse(localStorage.getItem("dailyAttendance")) || {};
+    renderAttendanceTable();
+
+    function addAttendance() {
+      const input = document.getElementById("attendanceInput");
+      const value = parseInt(input.value);
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+      if (!isNaN(value) && value >= 0) {
+        total += value;
+        document.getElementById("totalCount").textContent = total;
+        localStorage.setItem("attendanceTotal", total); // Save to localStorage
+
+        // Update daily attendance
+        dailyAttendance[today] = (dailyAttendance[today] || 0) + value;
+        localStorage.setItem("dailyAttendance", JSON.stringify(dailyAttendance));
+        renderAttendanceTable();
+
+        input.value = "";
+      } else {
+        alert("ادخل رقم موجب.");
+      }
+    }
+
+    function subtractAttendance() {
+      const input = document.getElementById("attendanceInput");
+      const value = parseInt(input.value);
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+      if (!isNaN(value) && value >= 0) {
+        if (total - value < 0) {
+          alert("القيمة أقل من المجموع.");
+          return;
+        }
+        total -= value;
+        document.getElementById("totalCount").textContent = total;
+        localStorage.setItem("attendanceTotal", total);
+
+        // Update daily attendance
+        dailyAttendance[today] = (dailyAttendance[today] || 0) - value;
+        if (dailyAttendance[today] < 0) dailyAttendance[today] = 0;
+        localStorage.setItem("dailyAttendance", JSON.stringify(dailyAttendance));
+        renderAttendanceTable();
+
+        input.value = "";
+      } else {
+        alert("Please enter a valid non-negative number.");
+      }
+    }
+
+    function renderAttendanceTable() {
+      const table = document.getElementById("attendanceTable");
+      const tbody = table.querySelector("tbody");
+      tbody.innerHTML = "";
+      const days = Object.keys(dailyAttendance).sort();
+      if (days.length === 0) {
+        table.style.display = "none";
+        return;
+      }
+      table.style.display = "table";
+      days.forEach(day => {
+        const tr = document.createElement("tr");
+        const tdDate = document.createElement("td");
+        tdDate.textContent = day;
+        const tdCount = document.createElement("td");
+        tdCount.textContent = dailyAttendance[day];
+        tdCount.style.textAlign = "right";
+        // Add reset button for each day
+        const tdReset = document.createElement("td");
+        const resetBtn = document.createElement("button");
+        resetBtn.textContent = "Reset";
+        resetBtn.style.background = "#dc3545";
+        resetBtn.style.color = "#fff";
+        resetBtn.style.border = "none";
+        resetBtn.style.borderRadius = "4px";
+        resetBtn.style.padding = "5px 10px";
+        resetBtn.style.cursor = "pointer";
+        resetBtn.onclick = function() { resetDayAttendance(day); };
+        tdReset.appendChild(resetBtn);
+        tr.appendChild(tdDate);
+        tr.appendChild(tdCount);
+        tr.appendChild(tdReset);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function resetDayAttendance(day) {
+      if (confirm(`Reset attendance for ${day}?`)) {
+        // Subtract that day's attendance from total
+        total -= dailyAttendance[day] || 0;
+        if (total < 0) total = 0;
+        document.getElementById("totalCount").textContent = total;
+        localStorage.setItem("attendanceTotal", total);
+        // Remove the day from dailyAttendance
+        delete dailyAttendance[day];
+        localStorage.setItem("dailyAttendance", JSON.stringify(dailyAttendance));
+        renderAttendanceTable();
+      }
+    }
+  </script>
+</body>
+</html>
